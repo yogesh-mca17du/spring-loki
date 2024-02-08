@@ -1,0 +1,32 @@
+version: '3'
+services:
+  my-spring-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - otel-collector
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    volumes:
+      - ./otel-collector-config.yaml:/otel-collector-config.yaml
+    command: ["--config", "/otel-collector-config.yaml"]
+    ports:
+      - "4317:4317"  # OTLP receiver port
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - grafana-loki
+
+  grafana-loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"

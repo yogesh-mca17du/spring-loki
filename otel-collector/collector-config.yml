@@ -1,0 +1,47 @@
+extensions:
+  basicauth/traces:
+    client_auth:
+      username: "${TEMPO_USERNAME}"
+      password: "${TEMPO_PASSWORD}"
+  basicauth/metrics:
+    client_auth:
+      username: "${PROM_USERNAME}"
+      password: "${PROM_PASSWORD}"
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+  attributes:
+    actions:
+      - action: insert
+        key: env
+        value: "${DEPLOY_ENV}"
+
+exporters:
+  otlp:
+    endpoint: "${TEMPO_ENDPOINT}"
+    auth:
+      authenticator: basicauth/traces
+
+  prometheusremotewrite:
+    endpoint: "${PROM_ENDPOINT}"
+    auth:
+      authenticator: basicauth/metrics
+
+service:
+  extensions: [ basicauth/traces, basicauth/metrics ]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+
+    metrics:
+      receivers: [otlp]
+      processors: [batch,attributes]
+      exporters: [prometheusremotewrite]
